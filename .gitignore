@@ -1,0 +1,9 @@
+build/*
+.directory
+documentation/*
+run.sh
+build.sh
+*~
+downloads/
+example/
+.project
