@@ -516,7 +516,8 @@ public class DownloadManager implements DTListener, PeerUpdateListener,
                                    " : " + i + " (Total dl = " + totaldl +
                                    "% )");
                 this.savePiece(i);
-                this.getPieceBlock(i, 0, 15000);
+                if(Piece.bufferedBytes != 0)
+                	this.getPieceBlock(i, 0, Piece.bufferedBytes);
 
             } else {
 

@@ -47,6 +47,12 @@ import java.util.*;
  * @version 0.1
  */
 public class Piece {
+	
+	/**
+	 * Set how many bytes should be buffered to allow a faster sharing.
+	 * Set to 0 by default for memory consumption.
+	 */
+	public static int bufferedBytes = 0;
 
     private TreeMap<Integer, Integer> filesAndoffset;
     /**
