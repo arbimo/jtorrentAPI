@@ -432,10 +432,14 @@ public class DownloadManager implements DTListener, PeerUpdateListener,
         synchronized (this.isComplete) {
             int index = 0;
             ArrayList<Integer> possible = new ArrayList<Integer>(this.nbPieces);
+            BitSet treated = new BitSet(this.isRequested.length());
+            treated.clear();
+            treated.or(this.isComplete);
+            treated.or(this.isRequested);
+            
             for (int i = 0; i < this.nbPieces; i++) {
                 if ((!this.isPieceRequested(i) ||
-                     (this.isComplete.cardinality() > this.nbPieces - 3)) &&
-                    //(this.isRequested.cardinality() == this.nbPieces)) &&
+                		(treated.cardinality() == this.nbPieces)) &&
                     (!this.isPieceComplete(i)) &&
                     this.peerAvailabilies.get(id) != null) {
 
@@ -525,11 +529,17 @@ public class DownloadManager implements DTListener, PeerUpdateListener,
             }
 
             if (this.isComplete.cardinality() == this.nbPieces) {
-                //System.out.println("Download completed, saving file...");
-                //this.save();
-                //this.task.clear();
-                //this.end();
+
                 System.out.println("Task completed");
+                
+                /* Ending all tasks */
+                while(this.task.size() != 0) {
+                	peerID = this.task.firstKey();
+                	this.task.get(peerID).end();
+                	this.task.remove(peerID);
+                    this.peerList.remove(peerID);
+                    this.unchoken.remove(peerID);
+                }
                 this.notify();
             }
         }
