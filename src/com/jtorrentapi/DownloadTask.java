@@ -407,24 +407,35 @@ public class DownloadTask extends Thread implements IncomingListener,
                 break;
 
             case PeerProtocol.PIECE:
-                /**
-                 * Sets the block of data downloaded in the piece block list and
-                 * update the peer download rate. Removes the piece block from
-                 * the pending request list and change state.
-                 */
-                int begin = Utils.byteArrayToInt(Utils.subArray(message.
-                        getPayload(), 4, 4));
-                byte[] data = Utils.subArray(message.getPayload(), 8,
-                                             message.getPayload().length -
-                                             8);
-                this.downloadPiece.setBlock(begin,
-                                            data);
-                this.peer.setDLRate(data.length);
-                this.pendingRequest.remove(new Integer(begin));
-                if (this.pendingRequest.size() == 0)
-                    this.isDownloading = false;
-                this.changeState(this.DOWNLOADING);
-                break;
+            	/**
+            	 * Sets the block of data downloaded in the piece block list and
+            	 * update the peer download rate. Removes the piece block from
+            	 * the pending request list and change state.
+            	 */
+
+            	/* End task if the piece is not the one we expected */
+            	if (downloadPiece == null || 
+            			Utils.byteArrayToInt(Utils.subArray(message.getPayload(), 0, 4)) 
+            			!= this.downloadPiece.getIndex())
+            	{
+            		this.fireTaskCompleted(this.peer.toString(), this.MALFORMED_MESSAGE);
+            	} 
+            	else 
+            	{            	
+            		int begin = Utils.byteArrayToInt(Utils.subArray(message.
+            				getPayload(), 4, 4));
+            		byte[] data = Utils.subArray(message.getPayload(), 8,
+            				message.getPayload().length -
+            				8);
+            		this.downloadPiece.setBlock(begin,
+            				data);
+            		this.peer.setDLRate(data.length);
+            		this.pendingRequest.remove(new Integer(begin));
+            		if (this.pendingRequest.size() == 0)
+            			this.isDownloading = false;
+            		this.changeState(this.DOWNLOADING);
+            	}
+            	break;
 
             case PeerProtocol.CANCEL:
                 // TODO: Still to implement the cancel message. Not used here
@@ -479,11 +490,8 @@ public class DownloadTask extends Thread implements IncomingListener,
                     offset = 0;
                     if (downloadPiece.verify()) {
                         this.firePieceCompleted(p, true);
-                        this.changeState(this.READY_2_DL);
-
                     } else {
                         this.firePieceCompleted(p, false);
-                        this.changeState(this.READY_2_DL);
                     }
                     this.clear();
                     this.changeState(READY_2_DL);
