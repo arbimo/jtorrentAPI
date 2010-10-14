@@ -138,9 +138,13 @@ public class Piece {
      * @return byte[]
      */
     public synchronized byte[] data(){
-        byte[] data = new byte[0];
-        for(Iterator it = this.pieceBlock.keySet().iterator(); it.hasNext();)
-            data = Utils.concat(data, this.pieceBlock.get(it.next()));
+        byte[] data = new byte[this.length];
+	int pos = 0;
+        for(Iterator it = this.pieceBlock.keySet().iterator(); it.hasNext();) {
+		byte[] block = this.pieceBlock.get(it.next());
+		System.arraycopy(block, 0, data, pos, block.length);
+		pos += block.length;
+	}
         return data;
     }
 
