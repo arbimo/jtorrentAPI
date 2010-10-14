@@ -9,3 +9,5 @@ example/
 .project
 .settings/
 out.txt
+*.swp
+
