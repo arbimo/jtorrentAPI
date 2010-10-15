@@ -40,8 +40,7 @@ package com.jtorrentapi;
 import java.io.*;
 import java.util.*;
 import java.nio.ByteBuffer;
-import java.net.URL;
-import java.net.MalformedURLException;
+
 
 /**
  *
@@ -91,10 +90,39 @@ public class TorrentProcessor {
     public TorrentFile getTorrentFile(Map m){
         if(m == null)
             return null;
-        if(m.containsKey("announce")) // mandatory key
-            this.torrent.announceURL = new String((byte[]) m.get("announce"));
-        else
+        /*
+         * Parsing torrent for announce urls
+         */
+        if (m.containsKey("announce-list"))
+        {
+        	try {
+        		List l = (List) m.get("announce-list");
+        		int i =0;
+        		for (Iterator<List> it = l.iterator() ; it.hasNext() ; i++)
+        		{
+        			List l2 = (List) it.next();
+        			ArrayList<String> array = new ArrayList<String>();
+        			torrent.trackers.add(array);
+
+        			for (Iterator<Object> it2 = l2.iterator() ; it2.hasNext() ;)
+        			{
+        				String url = new String((byte[]) it2.next());
+        				array.add(url);
+        				System.out.println("New tracker : " + url);
+        			}
+        		}
+            
+        	} catch (Exception e) {
+        		return null;
+        	}
+        } else if(m.containsKey("announce")) {
+        	ArrayList<String> l = new ArrayList<String>();
+        	l.add(new String((byte[]) m.get("announce")));
+            this.torrent.trackers.add(l);
+        }
+        else 
             return null;
+        
         if(m.containsKey("comment")) // optional key
             this.torrent.comment = new String((byte[]) m.get("comment"));
         if(m.containsKey("created by")) // optional key
@@ -185,7 +213,7 @@ public class TorrentProcessor {
      */
     public void setTorrentData(String url, int pLength, String comment,
                                String encoding, String filename) {
-        this.torrent.announceURL = url;
+        this.torrent.trackers = new Trackers(url);
         this.torrent.pieceLength = pLength * 1024;
         this.torrent.createdBy = Constants.CLIENT;
         this.torrent.comment = comment;
@@ -206,7 +234,7 @@ public class TorrentProcessor {
      */
     public void setTorrentData(String url, int pLength, String comment,
                                String encoding, String name, List filenames) throws Exception {
-        this.torrent.announceURL = url;
+        this.torrent.trackers = new Trackers(url);
         this.torrent.pieceLength = pLength * 1024;
         this.torrent.comment = comment;
         this.torrent.createdBy = Constants.CLIENT;
@@ -221,9 +249,9 @@ public class TorrentProcessor {
      * @param url String
      */
     public void setAnnounceURL(String url) {
-        this.torrent.announceURL = url;
+        this.torrent.trackers = new Trackers(url);
     }
-
+    
     /**
      * Sets the pieceLength
      * @param length int
@@ -376,7 +404,7 @@ public class TorrentProcessor {
      */
     public byte[] generateTorrent(TorrentFile torr) {
         SortedMap map = new TreeMap();
-        map.put("announce", torr.announceURL);
+        map.put("announce", torr.trackers.getUrl());
         if(torr.comment.length() > 0)
             map.put("comment", torr.comment);
         if(torr.creationDate >= 0)

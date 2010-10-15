@@ -328,7 +328,7 @@ public class PeerUpdater extends Thread {
                                            TorrentFile t, long dl, long ul,
                                            long left, String event) {
         try {
-            URL source = new URL(t.announceURL + "?info_hash=" +
+            URL source = new URL(t.trackers.getUrl() + "?info_hash=" +
                                  t.info_hash_as_url + "&peer_id=" +
                                  Utils.byteArrayToURLString(id) + "&port="+
                                 this.listeningPort +

@@ -48,7 +48,7 @@ import java.util.Date;
  */
 public class TorrentFile {
 
-    public String announceURL;
+    public Trackers trackers;
     public String comment;
     public String createdBy;
     public long creationDate;
@@ -76,7 +76,7 @@ public class TorrentFile {
      */
     public TorrentFile() {
         super();
-        announceURL = new String();
+        trackers = new Trackers();
         comment = new String();
         createdBy = new String();
         encoding = new String();
@@ -104,7 +104,7 @@ public class TorrentFile {
      * info hash
      */
     public void printData(boolean detailed) {
-        System.out.println("Tracker URL: " + this.announceURL);
+        System.out.println("Tracker URL: " + this.trackers.getUrl());
         System.out.println("Torrent created by : " + this.createdBy);
         System.out.println("Torrent creation date : " + new Date(this.creationDate));
         System.out.println("Info hash :\n");
