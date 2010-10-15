@@ -57,14 +57,13 @@ public class DownloadManager implements DTListener, PeerUpdateListener,
     private int maxConnectionNumber = 100;
 
     private int nbOfFiles = 0;
-    private long length = 0;
-    private long left = 0;
     private Piece[] pieceList;
     private BitSet isComplete;
     private BitSet isRequested;
     private int nbPieces;
     private RandomAccessFile[] output_files;
 
+    private TorrentInfo info = null;
     private PeerUpdater pu = null;
     private ConnectionListener cl = null;
 
@@ -101,9 +100,8 @@ public class DownloadManager implements DTListener, PeerUpdateListener,
         this.isComplete = new BitSet(nbPieces);
         this.isRequested = new BitSet(nbPieces);
         this.output_files = new RandomAccessFile[this.nbOfFiles];
-
-        this.length = this.torrent.total_length;
-        this.left = this.length;
+        
+        this.info = new TorrentInfo(0, 0, this.torrent.total_length);
 
         this.checkTempFiles();
 
@@ -134,7 +132,7 @@ public class DownloadManager implements DTListener, PeerUpdateListener,
             pieceList[i] = new Piece(i,
                                      (i != this.nbPieces - 1) ?
                                      this.torrent.pieceLength :
-                                     ((Long) (this.length %
+                                     ((Long) (this.torrent.total_length %
                                               this.torrent.pieceLength)).
                                      intValue(),
                                      16384, (byte[]) torrent.
@@ -142,7 +140,7 @@ public class DownloadManager implements DTListener, PeerUpdateListener,
             //System.out.println("Piece " + i + " is complete: " + this.testComplete(i));
             if (this.testComplete(i)) {
                 this.setComplete(i, true);
-                this.left -= this.pieceList[i].getLength();
+                this.info.subLeft(this.pieceList[i].getLength());
             }
         }
         this.lastUnchoking = System.currentTimeMillis();
@@ -189,10 +187,9 @@ public class DownloadManager implements DTListener, PeerUpdateListener,
      * Create and start the peer updater to retrieve new peers sharing the file
      */
     public void startTrackerUpdate() {
-        this.pu = new PeerUpdater(this.clientID, this.torrent);
+        this.info.setListeningPort(this.cl.getConnectedPort());
+        this.pu = new PeerUpdater(this.clientID, this.torrent, this.info);
         this.pu.addPeerUpdateListener(this);
-        this.pu.setListeningPort(this.cl.getConnectedPort());
-        this.pu.setLeft(this.left);
         this.pu.start();
     }
 
@@ -503,7 +500,7 @@ public class DownloadManager implements DTListener, PeerUpdateListener,
         }
         synchronized (this.isComplete) {
             if (complete && !this.isPieceComplete(i)) {
-                pu.updateParameters(this.torrent.pieceLength, 0, "");
+                this.info.updateParameters(this.torrent.pieceLength, 0, "");
                 this.isComplete.set(i, complete);
                 float totaldl = (float) (((float) (100.0)) *
                                          ((float) (this.isComplete.cardinality())) /
@@ -685,7 +682,7 @@ public class DownloadManager implements DTListener, PeerUpdateListener,
                 dt.peer.setULRate(length);
             }
             dt = null;
-            this.pu.updateParameters(0, length, "");
+            this.info.updateParameters(0, length, "");
         } else {
             try {
                 this.task.get(peerID).end();

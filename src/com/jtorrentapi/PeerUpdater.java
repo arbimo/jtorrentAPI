@@ -59,32 +59,22 @@ public class PeerUpdater extends Thread {
     private byte[] id;
     private TorrentFile torrent;
 
-
-    private long downloaded = 0;
-    private long uploaded = 0;
-    private long left = 0;
-    private String event = "&event=started";
-    private int listeningPort = 6881;
-
     private int interval = 150;
     private int minInterval = 0;
     private boolean first = true;
     private boolean end = false;
+    
+    private TorrentInfo info = new TorrentInfo();
 
 
     private final EventListenerList listeners = new EventListenerList();
 
-    public PeerUpdater(byte[] id, TorrentFile torrent) {
+    public PeerUpdater(byte[] id, TorrentFile torrent, TorrentInfo info) {
         peerList = new LinkedHashMap();
         this.id = id;
         this.torrent = torrent;
-        this.left = torrent.total_length;
+        this.info = info;
         this.setDaemon(true);
-        //this.start();
-    }
-
-    public void setListeningPort(int port){
-        this.listeningPort = port;
     }
 
     /**
@@ -104,41 +94,7 @@ public class PeerUpdater extends Thread {
         return this.minInterval;
     }
 
-    /**
-     * Returns the number of bytes that have been downloaded so far
-     * @return int
-     */
 
-    public long getDownloaded() {
-        return this.downloaded;
-    }
-
-    /**
-     * Returns the number of bytes that have been uploaded so far
-     * @return int
-     */
-
-    public long getUploaded() {
-        return this.uploaded;
-    }
-
-    /**
-     * Returns the number of bytes still to download to complete task
-     * @return int
-     */
-
-    public long getLeft() {
-        return this.left;
-    }
-
-    /**
-     * Returns the current event of the client
-     * @return int
-     */
-
-    public String getEvent() {
-        return this.event;
-    }
 
     /**
      * Sets the interval between tracker update
@@ -156,38 +112,6 @@ public class PeerUpdater extends Thread {
         this.minInterval = minInt;
     }
 
-    /**
-     * Sets the # of bytes downloaded so far
-     * @param dl long
-     */
-
-    public void setDownloaded(long dl) {
-        this.downloaded = dl;
-    }
-
-    /**
-     * Sets the # of bytes uploaded so far
-     * @param ul long
-     */
-    public void setUploaded(long ul) {
-        this.uploaded = ul;
-    }
-
-    /**
-     * Sets the # of bytes still to download
-     * @param left long
-     */
-    public void setLeft(long left) {
-        this.left = left;
-    }
-
-    /**
-     * Sets the current state of the client
-     * @param event String
-     */
-    public void setEvent(String event) {
-        this.event = event;
-    }
 
     /**
      * Returns the list of peers in its current state
@@ -197,20 +121,6 @@ public class PeerUpdater extends Thread {
         return this.peerList;
     }
 
-    /**
-     * Update the parameters for future tracker communication
-     * @param dl int
-     * @param ul int
-     * @param event String
-     */
-    public synchronized void updateParameters(int dl, int ul, String event) {
-        synchronized (this) {
-            this.downloaded += dl;
-            this.uploaded += ul;
-            this.left -= dl;
-            this.event = event;
-        }
-    }
 
     /**
      * Thread method that regularly contact the tracker and process its response
@@ -220,14 +130,14 @@ public class PeerUpdater extends Thread {
         byte[] b = new byte[0];
         while (!this.end) {
             tryNB++;
-
+            
             this.peerList = this.processResponse(this.contactTracker(id,
-                    torrent, this.downloaded,
-                    this.uploaded,
-                    this.left, this.event));
+                    torrent, this.info.getDownloaded(),
+                    this.info.getUploaded(),
+                    this.info.getLeft(), this.info.getEvent()));
             if (peerList != null) {
                 if (first) {
-                    this.event = "";
+                    this.info.setEvent("");
                     first = false;
                 }
                 tryNB = 0;
@@ -331,7 +241,7 @@ public class PeerUpdater extends Thread {
             URL source = new URL(t.trackers.getUrl() + "?info_hash=" +
                                  t.info_hash_as_url + "&peer_id=" +
                                  Utils.byteArrayToURLString(id) + "&port="+
-                                this.listeningPort +
+                                this.info.getListeningPort() +
                                  "&downloaded=" + dl + "&uploaded=" + ul +
                                  "&left=" +
                                  left + "&numwant=100&compact=1" + event);
@@ -367,10 +277,10 @@ public class PeerUpdater extends Thread {
      * the run method
      */
     public void end() {
-        this.event = "&event=stopped";
+        this.info.setEvent("&event=stopped");
         this.end = true;
-        this.contactTracker(this.id, this.torrent, this.downloaded,
-                            this.uploaded, this.left, "&event=stopped");
+        this.contactTracker(this.id, this.torrent, this.info.getDownloaded(),
+                            this.info.getUploaded(), this.info.getLeft(), "&event=stopped");
     }
 
     /**
